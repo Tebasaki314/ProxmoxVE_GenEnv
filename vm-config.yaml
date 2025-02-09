@@ -1,0 +1,90 @@
+# 仮想マシンの設定ファイル
+# SDN設定
+sdn:
+  # ゾーン設定
+  zone:
+    # ゾーンID
+    id: zone1
+    # ブリッジ名
+    bridge: vmbr0
+    # MTUサイズ
+    mtu: 1500
+    # ノードリスト
+    nodes:
+      - node1
+      - node2
+      - node3
+    # IPアドレス管理方式
+    ipam: dhcp
+    # 仮想ネットワーク設定
+    vnets:
+      - name: vnet1
+        tag: 100
+        subnets:
+          - cidr: 192.168.1.0/24
+            gateway: 192.168.1.1
+            snat: true
+            prefix: 24
+
+# テンプレート設定
+templates:
+  - id: 9000
+    # イメージファイルダウンロード先
+    from: https://cloud-images.ubuntu.com/releases/24.04/release/ubuntu-24.04-server-cloudimg-amd64.img
+    # イメージファイル
+    image: ubuntu-24.04-server-cloudimg-amd64.img
+    # ユーザー名
+    user: ubuntu
+    # パスワード
+    password: password
+    # SSHキー
+    sshkey: ~/.ssh/id_rsa.pub
+
+# 仮想マシン設定
+vms:
+  - node_name: node1
+    # 使用するテンプレートID
+    template_id: 9000
+    # IPアドレス
+    ip: 192.168.1.100
+    # 仮想マシン名
+    name: master
+    # コア数
+    cores: 2
+    # メモリ容量
+    memory: 4096
+    # ディスク容量
+    disk: 20G
+    # ストレージ
+    lvm: local-lvm
+    # ブリッジ名
+    bridge: vmbr0
+    # VLANタグ
+    vlan_tag: 100
+  - node_name: node2
+    template_id: 9000
+    ip: 192.168.1.101
+    name: worker1
+    cores: 2
+    memory: 4096
+    disk: 20G
+    lvm: local-lvm
+    bridge: vmbr0
+    vlan_tag: 100
+  - node_name: node3
+    template_id: 9000
+    ip: 192.168.1.102
+    name: worker2
+    cores: 2
+    memory: 4096
+    disk: 20G
+    lvm: local-lvm
+    bridge: vmbr0
+    vlan_tag: 100
+      - name: vnet1
+        tag: 100
+        subnet:
+          cidr: 192.168.1.0/24
+          gateway: 192.168.1.1
+          snat: true
+          prefix: 24
