@@ -11,9 +11,9 @@ sdn:
     mtu: 1500
     # ノードリスト
     nodes:
-      - node1
-      - node2
-      - node3
+      - pve-tpx260
+      - pve-lat3510
+      - pve-sflp4
     # IPアドレス管理方式
     ipam: dhcp
     # 仮想ネットワーク設定

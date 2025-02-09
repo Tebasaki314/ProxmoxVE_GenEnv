@@ -1,7 +1,13 @@
 #!/bin/bash
 
-# 仮想マシンの設定ファイルを読み込む
-CONFIG_FILE="vm-config.yaml"
+# 引数がなかった場合、設定ファイルを指定するようにヘルプを表示して終了する。
+if [ $# -eq 0 ]; then
+    echo "Usage: $0 <config_file>"
+    exit 1
+fi
+
+# 引数から仮想マシンの設定ファイルを読み込む
+CONFIG_FILE=$1
 
 # YAMLファイルを解析するためにyqを使用
 if ! command -v yq &> /dev/null
@@ -70,8 +76,13 @@ do
     template_sshkey=$(_jq_template '.template.sshkey')
 
     # クラウドイメージをダウンロード
-    echo "Downloading cloud image"
-    wget $template_from -O $template_image
+    # もし、イメージが存在しない場合はダウンロードする
+    if [ -f $template_image ]; then
+        echo "Cloud image already exists"
+    else
+        echo "Downloading cloud image"
+        wget $template_from -O $template_image
+    fi
 
     # クラウドイメージをProxmoxにインポート
     echo "Importing cloud image to Proxmox"
