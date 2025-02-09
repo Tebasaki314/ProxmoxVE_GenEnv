@@ -17,37 +17,37 @@ then
 fi
 
 # 仮想マシンの設定を読み込む
-vms=$(yq e '.vms' $CONFIG_FILE)
+vms=$(yq -r '.vms' $CONFIG_FILE)
 
 # テンプレートの設定を読み込む
-templates=$(yq e '.templates' $CONFIG_FILE)
+templates=$(yq -r '.templates' $CONFIG_FILE)
 
 # SDNゾーン設定を読み込む
-zone_id=$(yq e '.sdn.zone.id' $CONFIG_FILE)
-zone_bridge=$(yq e '.sdn.zone.bridge' $CONFIG_FILE)
-zone_mtu=$(yq e '.sdn.zone.mtu' $CONFIG_FILE)
-zone_nodes=$(yq e '.sdn.zone.nodes' $CONFIG_FILE)
-zone_ipam=$(yq e '.sdn.zone.ipam' $CONFIG_FILE)
+zone_id=$(yq -r '.sdn.zone.id' $CONFIG_FILE)
+zone_bridge=$(yq -r '.sdn.zone.bridge' $CONFIG_FILE)
+zone_mtu=$(yq -r '.sdn.zone.mtu' $CONFIG_FILE)
+zone_nodes=$(yq -r '.sdn.zone.nodes' $CONFIG_FILE)
+zone_ipam=$(yq -r '.sdn.zone.ipam' $CONFIG_FILE)
 
 # SDNゾーンを作成
 echo "Creating SDN zone: $zone_id"
 pvesh create /cluster/sdn/zones --zone $zone_id --bridge $zone_bridge --mtu $zone_mtu --nodes $zone_nodes --ipam $zone_ipam
 
 # ネットワーク設定を読み込む
-vnets=$(yq e '.sdn.vnets' $CONFIG_FILE)
-for vnet in $(echo "$vnets" | yq e '.[] | @base64' -)
+vnets=$(yq -r '.sdn.vnets' $CONFIG_FILE)
+for vnet in $(echo "$vnets" | yq -r '.[] | @base64' -)
 do
     _jq_vnet() {
-        echo ${vnet} | base64 --decode | yq e ${1} -
+        echo ${vnet} | base64 --decode | yq -r ${1} -
     }
 
     vnet_name=$(_jq_vnet '.name')
     vnet_tag=$(_jq_vnet '.tag')
     subnets=$(_jq_vnet '.subnets')
-    for subnet in $(echo "$subnets" | yq e '.[] | @base64' -)
+    for subnet in $(echo "$subnets" | yq -r '.[] | @base64' -)
     do
         _jq_subnet() {
-            echo ${subnet} | base64 --decode | yq e ${1} -
+            echo ${subnet} | base64 --decode | yq -r ${1} -
         }
 
         subnet_cidr=$(_jq_subnet '.cidr')
@@ -61,10 +61,10 @@ do
     done
 done
 
-for template in $(echo "$templates" | yq e '.[] | @base64' -)
+for template in $(echo "$templates" | yq -r '.[] | @base64' -)
 do
     _jq_template() {
-        echo ${template} | base64 --decode | yq e ${1} -
+        echo ${template} | base64 --decode | yq -r ${1} -
     }
 
     # テンプレート設定を読み込む
@@ -95,10 +95,10 @@ do
 done
 
 # 仮想マシンを作成する
-for vm in $(echo "$vms" | yq e '.[] | @base64' -)
+for vm in $(echo "$vms" | yq -r '.[] | @base64' -)
 do
     _jq() {
-        echo ${vm} | base64 --decode | yq e ${1} -
+        echo ${vm} | base64 --decode | yq -r ${1} -
     }
 
     node_name=$(_jq '.node_name')
