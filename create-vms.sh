@@ -24,14 +24,16 @@ templates=$(yq '.templates' $CONFIG_FILE)
 
 # SDNゾーン設定を読み込む
 zone_id=$(yq '.sdn.zone.id' $CONFIG_FILE)
+zone_type=$(yq '.sdn.zone.type' $CONFIG_FILE)
 zone_bridge=$(yq '.sdn.zone.bridge' $CONFIG_FILE)
 zone_mtu=$(yq '.sdn.zone.mtu' $CONFIG_FILE)
-zone_nodes=$(yq '.sdn.zone.nodes' $CONFIG_FILE)
+# ノードのリストを取得して、カンマ区切りの文字列に変換
+zone_nodes=$(yq '.sdn.zone.nodes | join(",")' $CONFIG_FILE)
 zone_ipam=$(yq '.sdn.zone.ipam' $CONFIG_FILE)
 
 # SDNゾーンを作成
-echo "Creating SDN zone: $zone_id"
-pvesh create /cluster/sdn/zones --zone $zone_id --bridge $zone_bridge --mtu $zone_mtu --nodes $zone_nodes --ipam $zone_ipam
+echo "Creating SDN zone: $zone_id of type: $zone_type"
+pvesh create /cluster/sdn/zones --type $zone_type --zone $zone_id --bridge $zone_bridge --mtu $zone_mtu --nodes "$zone_nodes" --ipam $zone_ipam
 
 # ネットワーク設定を読み込む
 vnets=$(yq '.sdn.vnets' $CONFIG_FILE)

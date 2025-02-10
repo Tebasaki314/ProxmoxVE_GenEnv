@@ -3,6 +3,8 @@
 sdn:
   # ゾーン設定
   zone:
+    # ゾーンタイプ
+    type: vlan
     # ゾーンID
     id: zone1
     # ブリッジ名
@@ -15,7 +17,7 @@ sdn:
       - pve-lat3510
       - pve-sflp4
     # IPアドレス管理方式
-    ipam: dhcp
+    ipam: pve
     # 仮想ネットワーク設定
     vnets:
       - name: vnet1
