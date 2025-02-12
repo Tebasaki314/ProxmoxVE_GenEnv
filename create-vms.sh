@@ -16,35 +16,29 @@ then
     exit 1
 fi
 
-# 仮想マシンの設定を読み込む
-vms=$(yq '.vms' $CONFIG_FILE)
-
-# テンプレートの設定を読み込む
-templates=$(yq '.templates' $CONFIG_FILE)
-
 # SDNゾーン設定を読み込む
-zone_id=$(yq '.sdn.zone.id' $CONFIG_FILE)
-zone_type=$(yq '.sdn.zone.type' $CONFIG_FILE)
-zone_bridge=$(yq '.sdn.zone.bridge' $CONFIG_FILE)
-zone_mtu=$(yq '.sdn.zone.mtu' $CONFIG_FILE)
+zone_id=$(yq '.sdn.zone.id' $CONFIG_FILE | tr -d '"')
+zone_type=$(yq '.sdn.zone.type' $CONFIG_FILE | tr -d '"')
+zone_bridge=$(yq '.sdn.zone.bridge' $CONFIG_FILE | tr -d '"')
+zone_mtu=$(yq '.sdn.zone.mtu' $CONFIG_FILE | tr -d '"')
 # ノードのリストを取得して、カンマ区切りの文字列に変換
-zone_nodes=$(yq '.sdn.zone.nodes | join(",")' $CONFIG_FILE)
-zone_ipam=$(yq '.sdn.zone.ipam' $CONFIG_FILE)
+zone_nodes=$(yq '.sdn.zone.nodes | join(",")' $CONFIG_FILE | tr -d '"')
+zone_ipam=$(yq '.sdn.zone.ipam' $CONFIG_FILE | tr -d '"')
 
 # SDNゾーンを作成
 echo "Creating SDN zone: $zone_id of type: $zone_type"
 pvesh create /cluster/sdn/zones --type $zone_type --zone $zone_id --bridge $zone_bridge --mtu $zone_mtu --nodes "$zone_nodes" --ipam $zone_ipam
 
 # ネットワーク設定を読み込む
-vnets=$(yq '.sdn.vnets' $CONFIG_FILE)
+vnets=$(yq '.sdn.zone.vnets' $CONFIG_FILE)
 for vnet in $(echo "$vnets" | jq -r '.[] | @base64')
 do
     _jq_vnet() {
         echo ${vnet} | base64 --decode | jq -r ${1}
     }
 
-    vnet_name=$(_jq_vnet '.name')
-    vnet_tag=$(_jq_vnet '.tag')
+    vnet_name=$(_jq_vnet '.name' | tr -d '"')
+    vnet_tag=$(_jq_vnet '.tag' | tr -d '"')
     subnets=$(_jq_vnet '.subnets')
     for subnet in $(echo "$subnets" | jq -r '.[] | @base64')
     do
@@ -52,16 +46,19 @@ do
             echo ${subnet} | base64 --decode | jq -r ${1}
         }
 
-        subnet_cidr=$(_jq_subnet '.cidr')
-        subnet_gateway=$(_jq_subnet '.gateway')
-        subnet_snat=$(_jq_subnet '.snat')
-        subnet_prefix=$(_jq_subnet '.prefix')
+        subnet_cidr=$(_jq_subnet '.cidr' | tr -d '"')
+        subnet_gateway=$(_jq_subnet '.gateway' | tr -d '"')
+        subnet_snat=$(_jq_subnet '.snat' | tr -d '"')
+        subnet_prefix=$(_jq_subnet '.prefix' | tr -d '"')
 
         echo "Creating network: $vnet_name with tag: $vnet_tag"
         # ネットワークの作成コマンドを実行
         pvesh create /cluster/sdn/vnets --vnet $vnet_name --zone $zone_id --tag $vnet_tag --cidr $subnet_cidr --gateway $subnet_gateway --snat $subnet_snat --prefix $subnet_prefix
     done
 done
+
+# テンプレートの設定を読み込む
+templates=$(yq '.templates' $CONFIG_FILE)
 
 for template in $(echo "$templates" | jq -r '.[] | @base64')
 do
@@ -70,12 +67,13 @@ do
     }
 
     # テンプレート設定を読み込む
-    template_id=$(_jq_template '.template.id')
-    template_from=$(_jq_template '.template.from')
-    template_image=$(_jq_template '.template.image')
-    template_user=$(_jq_template '.template.user')
-    template_password=$(_jq_template '.template.password')
-    template_sshkey=$(_jq_template '.template.sshkey')
+    template_id=$(_jq_template '.id')
+    template_name=$(_jq_template '.name')
+    template_from=$(_jq_template '.from')
+    template_image=$(_jq_template '.image')
+    template_user=$(_jq_template '.user')
+    template_password=$(_jq_template '.password')
+    template_sshkey=$(_jq_template '.sshkey')
 
     # クラウドイメージをダウンロード
     # もし、イメージが存在しない場合はダウンロードする
@@ -88,13 +86,16 @@ do
 
     # クラウドイメージをProxmoxにインポート
     echo "Importing cloud image to Proxmox"
-    qm create $template_id --name "ubuntu-template" --memory 2048 --cores 2 --net0 virtio,bridge=vmbr0 --serial0 socket --vga serial0
-    qm importdisk $template_id ubuntu-24.04-server-cloudimg-amd64.img local-lvm
+    qm create $template_id --name "$template_name" --memory 2048 --cores 2 --net0 virtio,bridge=vmbr0 --serial0 socket --vga serial0
+    qm importdisk $template_id $template_image local-lvm
     qm set $template_id --scsihw virtio-scsi-pci --scsi0 local-lvm:vm-$template_id-disk-0
     qm set $template_id --ide2 local-lvm:cloudinit --boot c --bootdisk scsi0
     qm set $template_id --ciuser $template_user --sshkey $template_sshkey --cipassword $template_password --ipconfig0 ip=dhcp
     qm template $template_id
 done
+
+# 仮想マシンの設定を読み込む
+vms=$(yq '.vms' $CONFIG_FILE)
 
 # 仮想マシンを作成する
 for vm in $(echo "$vms" | jq -r '.[] | @base64')
